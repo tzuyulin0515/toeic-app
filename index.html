@@ -126,7 +126,7 @@ async function init() {
                 if (lessons.length === 0) {
                     select.innerHTML = '<option value="">無資料</option>';
                 } else {
-                    select.innerHTML = lessons.map(l => `<option value="${l}">第 ${l} 回</option>`).join('');
+                    select.innerHTML = lessons.map(l => `<option value="${l}">${l}</option>`).join('');
                 }
             }
 
