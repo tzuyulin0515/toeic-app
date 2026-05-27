@@ -45,7 +45,7 @@
     <div class="selector-group">
         <div>
             級數：
-            <select id="courseSelect" onchange="filterData()">
+            <select id="courseSelect" onchange="changeCourse()">
                 <option value="補充單字">補充單字表</option>
                 <option value="多益A">多益 A 級</option>
                 <option value="多益B">多益 B 級</option>
@@ -101,45 +101,52 @@
         let reviewWords = JSON.parse(localStorage.getItem('zt_review_v3')) || [];
         let currentIndex = 0;
 
-        async function init() {
-            try {
-                const res = await fetch('vocabulary.json');
-                allData = await res.json();
-                updateLessonOptions();
-                filterData();
-            } catch(e) { alert("讀取資料失敗，請確認 vocabulary.json 檔案是否存在！"); }
-        }
+async function init() {
+    try {
+        const res = await fetch('vocabulary.json');
+        allData = await res.json();
+        // 初始化時，直接呼叫 changeCourse 來建立第一組選單
+        changeCourse(); 
+    } catch(e) { 
+        alert("讀取資料失敗，請確認 vocabulary.json 檔案是否存在！"); 
+    }
+}
 
-        function updateLessonOptions() {
-            const course = document.getElementById('courseSelect').value;
-            const lessons = [...new Set(allData.filter(w => w.course === course).map(w => w.lesson))].sort((a,b)=>a-b);
-            const select = document.getElementById('lessonSelect');
-            select.innerHTML = lessons.map(l => `<option value="${l}">第 ${l} 回</option>`).join('');
-            if (lessons.length === 0) select.innerHTML = '<option value="">無資料</option>';
-        }
-
-        function filterData() {
-            const course = document.getElementById('courseSelect').value;
-            // 1. 拿掉 parseInt，直接取得選單的字串值
-            const lessonStr = document.getElementById('lessonSelect').value;
-            
-            // 2. 將 JSON 裡的 w.lesson 也包一層 String() 確保兩邊都是字串在比對
-            filteredWords = allData.filter(w => w.course === course && String(w.lesson) === lessonStr);
-            
-            // 3. 修改防呆機制，避免無窮迴圈
-            if (filteredWords.length === 0 && allData.some(w => w.course === course)) {
-                updateLessonOptions();
-                // 重新抓取更新後的選單值再過濾一次，但不使用 return 呼叫自己
-                const newLessonStr = document.getElementById('lessonSelect').value;
-                filteredWords = allData.filter(w => w.course === course && String(w.lesson) === newLessonStr);
+// 新增：專門處理「切換級數」的動作
+            function changeCourse() {
+                updateLessonOptions(); // 先更新回數的下拉選單
+                filterData();          // 再根據新的回數去抓單字
             }
 
-            currentIndex = 0;
-            updateStudyCard();
-            renderFullList();
-            renderReview();
-        }
-        function renderFullList() {
+            function updateLessonOptions() {
+                const course = document.getElementById('courseSelect').value;
+                const lessons = [...new Set(allData.filter(w => w.course === course).map(w => w.lesson))].sort((a,b)=>a-b);
+                const select = document.getElementById('lessonSelect');
+                
+                if (lessons.length === 0) {
+                    select.innerHTML = '<option value="">無資料</option>';
+                } else {
+                    select.innerHTML = lessons.map(l => `<option value="${l}">第 ${l} 回</option>`).join('');
+                }
+            }
+
+            function filterData() {
+                const course = document.getElementById('courseSelect').value;
+                const lessonStr = document.getElementById('lessonSelect').value;
+                
+                // 移除容易導致無窮迴圈的防呆機制
+                // 加上 .trim() 確保 JSON 裡就算有不小心打到的空白，也能正確比對
+                filteredWords = allData.filter(w => 
+                    w.course === course && 
+                    String(w.lesson).trim() === String(lessonStr).trim()
+                );
+
+                currentIndex = 0;
+                updateStudyCard();
+                renderFullList();
+                renderReview();
+            }        
+            function renderFullList() {
             document.getElementById('fullListBody').innerHTML = filteredWords.map(w => {
                 const isReview = reviewWords.find(r => r.word === w.word);
                 return `<tr>
