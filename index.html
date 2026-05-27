@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zhen&Tzuyu 多益單字作戰系統</title>
+    <title>多益單字作戰系統</title>
     <style>
         :root { --primary: #6c5ce7; --success: #00b894; --warning: #fdcb6e; --danger: #d63031; --bg: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
@@ -120,13 +120,18 @@
 
         function filterData() {
             const course = document.getElementById('courseSelect').value;
-            const lesson = parseInt(document.getElementById('lessonSelect').value);
-            filteredWords = allData.filter(w => w.course === course && w.lesson === lesson);
+            // 1. 拿掉 parseInt，直接取得選單的字串值
+            const lessonStr = document.getElementById('lessonSelect').value;
             
-            // 如果切換級數發現回數變了，重新更新回數選單
+            // 2. 將 JSON 裡的 w.lesson 也包一層 String() 確保兩邊都是字串在比對
+            filteredWords = allData.filter(w => w.course === course && String(w.lesson) === lessonStr);
+            
+            // 3. 修改防呆機制，避免無窮迴圈
             if (filteredWords.length === 0 && allData.some(w => w.course === course)) {
                 updateLessonOptions();
-                return filterData();
+                // 重新抓取更新後的選單值再過濾一次，但不使用 return 呼叫自己
+                const newLessonStr = document.getElementById('lessonSelect').value;
+                filteredWords = allData.filter(w => w.course === course && String(w.lesson) === newLessonStr);
             }
 
             currentIndex = 0;
@@ -134,7 +139,6 @@
             renderFullList();
             renderReview();
         }
-
         function renderFullList() {
             document.getElementById('fullListBody').innerHTML = filteredWords.map(w => {
                 const isReview = reviewWords.find(r => r.word === w.word);
